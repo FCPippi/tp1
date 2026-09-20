@@ -1,0 +1,14 @@
+.code
+LOAD limite
+loop:
+SUB #1                   # Decrementa o acumulador (acc = acc - 1)
+STORE temp                # Salva o contador atual em memoria
+SYSCALL 1                 # Imprime acc e BLOQUEIA por 3 UTs (forca retorno a Fila 0)
+LOAD temp                 # Recupera o contador para a proxima iteracao
+BRPOS loop                # Enquanto acc > 0, continua no laco
+SYSCALL 0                 # Encerra o processo (HALT)
+.endcode
+.data
+limite 3
+temp 0
+.enddata
