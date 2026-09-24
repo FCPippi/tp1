@@ -23,7 +23,13 @@ O processo é um PCB orientado a objetos. As filas usam `deque`; os grupos da Fi
 - Novo processo e processo que retorna de I/O entram na Fila 0.
 - Processo da Fila 1 é preemptado imediatamente quando existe processo na Fila 0.
 - `SYSCALL 1` e `SYSCALL 2` bloqueiam por 3 UTs.
+- `SYSCALL 1` imprime imediatamente no formato `[P1] Impressao (SYSCALL 1): valor`.
+- `SYSCALL 2` solicita um inteiro pelo teclado quando executado.
 - `SYSCALL 0` finaliza o processo.
+- Nomes de dados e rótulos são tratados sem distinção entre maiúsculas e minúsculas.
+- `STORE` aceita somente nomes de dados, nunca valores imediatos como `#7`.
+- Erros de execução finalizam apenas o processo afetado e são registrados no log.
+- O limite padrão é de 10000 UTs e pode ser alterado com `--max-uts`.
 - Troca de contexto não consome UT.
 - Turnaround = término - chegada.
 - Espera = turnaround - CPU consumida - tempo bloqueado.
@@ -58,6 +64,12 @@ Salve o conteúdo, por exemplo, em `processos.json` e execute:
 python main.py --config processos.json
 ```
 
+Para evitar que um programa com laço infinito prolongue a apresentação:
+
+```powershell
+python main.py --max-uts 500
+```
+
 ## Validação
 
 ```powershell
@@ -76,9 +88,10 @@ python -m pytest -q
 1. Apresente a estrutura modular e o formato das seções `.code` e `.data`.
 2. Execute `python main.py`.
 3. Mostre uma chegada na Fila 0, a promoção para a Fila 1 após o quantum e a preempção causada por uma nova chegada.
-4. Destaque as linhas de `SYSCALL 1`: o processo fica bloqueado por 3 UTs e volta para a Fila 0.
-5. Explique o Gantt e confira as métricas individuais e médias.
-6. Mostre os testes e a validação de erro de montagem.
+4. Destaque os logs de `SYSCALL 1` e `SYSCALL 0`.
+5. Demonstre um programa com `SYSCALL 2` e informe um valor no teclado.
+6. Explique o Gantt e confira as métricas individuais e médias.
+7. Mostre os testes, a validação de `STORE #7` e o limite de UTs.
 
 ## Melhorias futuras
 

@@ -31,6 +31,7 @@ class Processo:
     bloqueado_ate: int | None = None
     saidas: list = field(default_factory=list)
     entradas: list = field(default_factory=list)
+    erro: str | None = None
 
     @property
     def finalizado(self):

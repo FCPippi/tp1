@@ -10,6 +10,7 @@ class ResultadoExecucao:
     bloqueou: bool = False
     finalizou: bool = False
     syscall: int | None = None
+    valor: int | None = None
 
 
 class CPU:
@@ -20,6 +21,7 @@ class CPU:
     def _valor(processo, operando):
         if operando.startswith("#"):
             return int(operando[1:])
+        operando = operando.lower()
         if operando not in processo.memoria:
             raise RuntimeError(f"PID {processo.pid}: dado inexistente '{operando}'")
         return processo.memoria[operando]
@@ -37,7 +39,7 @@ class CPU:
         if mnemonico == "LOAD":
             processo.acc = self._valor(processo, operando)
         elif mnemonico == "STORE":
-            processo.memoria[operando] = processo.acc
+            processo.memoria[operando.lower()] = processo.acc
         elif mnemonico == "ADD":
             processo.acc += self._valor(processo, operando)
         elif mnemonico == "SUB":
@@ -62,7 +64,7 @@ class CPU:
             if codigo == 0:
                 processo.estado = Estado.FINALIZADO
                 processo.tempo_termino = tempo + 1
-                return ResultadoExecucao(finalizou=True, syscall=codigo)
+                return ResultadoExecucao(finalizou=True, syscall=codigo, valor=processo.acc)
             if codigo == 1:
                 processo.saidas.append(processo.acc)
             elif codigo == 2:
@@ -70,5 +72,5 @@ class CPU:
                 processo.entradas.append(processo.acc)
             processo.estado = Estado.BLOQUEADO
             processo.bloqueado_ate = tempo + 4
-            return ResultadoExecucao(bloqueou=True, syscall=codigo)
+            return ResultadoExecucao(bloqueou=True, syscall=codigo, valor=processo.acc)
         return ResultadoExecucao()

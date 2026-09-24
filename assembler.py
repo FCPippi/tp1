@@ -12,6 +12,7 @@ MNEMONICOS_VALIDOS = {
     "BRANY", "BRPOS", "BRZERO", "BRNEG", "SYSCALL",
 }
 DESVIOS = {"BRANY", "BRPOS", "BRZERO", "BRNEG"}
+OPERACOES_COM_DADO = {"LOAD", "STORE", "ADD", "SUB", "MULT", "DIV"}
 
 
 @dataclass(frozen=True)
@@ -41,6 +42,10 @@ def _tokens_sem_comentario(linha):
             break
         tokens.append(token)
     return tokens
+
+
+def _normalizar_nome(nome):
+    return nome.lower()
 
 
 class Assembler:
@@ -75,9 +80,17 @@ class Assembler:
         resolvidas = []
         for indice, instrucao in enumerate(instrucoes):
             if instrucao.mnemonico in DESVIOS:
-                if instrucao.operando not in rotulos:
+                rotulo = _normalizar_nome(instrucao.operando)
+                if rotulo not in rotulos:
                     raise ErroDeMontagem(f"instrucao {indice}: rotulo nao definido")
-                resolvidas.append(Instrucao(instrucao.mnemonico, instrucao.operando, rotulos[instrucao.operando]))
+                resolvidas.append(Instrucao(instrucao.mnemonico, rotulo, rotulos[rotulo]))
+            elif instrucao.mnemonico in OPERACOES_COM_DADO and not instrucao.eh_imediato():
+                nome = _normalizar_nome(instrucao.operando)
+                if instrucao.mnemonico == "STORE" and instrucao.eh_imediato():
+                    raise ErroDeMontagem(f"instrucao {indice}: STORE exige nome de dado")
+                if nome not in dados:
+                    raise ErroDeMontagem(f"instrucao {indice}: dado nao declarado '{instrucao.operando}'")
+                resolvidas.append(Instrucao(instrucao.mnemonico, nome))
             elif instrucao.mnemonico == "SYSCALL" and instrucao.operando not in ("0", "1", "2"):
                 raise ErroDeMontagem(f"instrucao {indice}: SYSCALL invalido")
             else:
@@ -87,6 +100,7 @@ class Assembler:
     def _codigo(self, tokens, lineno, instrucoes, rotulos):
         if tokens[0].endswith(":"):
             rotulo = tokens.pop(0)[:-1]
+            rotulo = _normalizar_nome(rotulo)
             if not rotulo or rotulo in rotulos:
                 raise ErroDeMontagem(f"linha {lineno}: rotulo invalido ou duplicado")
             rotulos[rotulo] = len(instrucoes)
@@ -100,12 +114,15 @@ class Assembler:
         operando = tokens[1] if len(tokens) == 2 else None
         if operando is None:
             raise ErroDeMontagem(f"linha {lineno}: operando ausente")
+        if mnemonico == "STORE" and operando.startswith("#"):
+            raise ErroDeMontagem(f"linha {lineno}: STORE exige nome de dado")
         instrucoes.append(Instrucao(mnemonico, operando))
 
     def _dado(self, tokens, lineno, dados):
         if len(tokens) != 2:
             raise ErroDeMontagem(f"linha {lineno}: declaracao de dado invalida")
         nome, valor = tokens
+        nome = _normalizar_nome(nome)
         if nome in dados:
             raise ErroDeMontagem(f"linha {lineno}: dado duplicado '{nome}'")
         try:

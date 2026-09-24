@@ -33,6 +33,7 @@ def main():
     parser.add_argument("--config", help="JSON com a lista de processos")
     parser.add_argument("--programa", help="Executa um unico arquivo Assembly")
     parser.add_argument("--silencioso", action="store_true")
+    parser.add_argument("--max-uts", type=int, default=10000)
     args = parser.parse_args()
     base = os.path.dirname(__file__)
     if args.config:
@@ -48,7 +49,15 @@ def main():
             {"nome": "P2", "arrivalTime": 1, "prioridade": 5,
              "arquivo": os.path.join(base, "programs", "teste2.asm")},
         ]
-    resultado = Scheduler(carregar_processos(configuracoes), mostrar=not args.silencioso).executar()
+    def entrada_teclado(processo):
+        while True:
+            try:
+                return int(input(f"[{processo.nome}] Digite um valor inteiro (SYSCALL 2): "))
+            except ValueError:
+                print("Entrada invalida: informe um numero inteiro.")
+
+    resultado = Scheduler(carregar_processos(configuracoes), entrada=entrada_teclado,
+                          mostrar=not args.silencioso, max_uts=args.max_uts).executar()
     imprimir_resultado(resultado)
 
 

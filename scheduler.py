@@ -10,7 +10,7 @@ from queue_manager import QueueManager
 class Scheduler:
     QUANTA = {0: 2, 1: 4}
 
-    def __init__(self, processos, entrada=None, mostrar=True):
+    def __init__(self, processos, entrada=None, mostrar=True, max_uts=10000):
         self.processos = sorted(processos, key=lambda processo: (processo.chegada, processo.pid))
         self.filas = QueueManager()
         self.cpu = CPU(entrada)
@@ -18,6 +18,7 @@ class Scheduler:
         self.tempo = 0
         self.executando = None
         self.historico = []
+        self.max_uts = max_uts
 
     def _admitir(self):
         for processo in self.processos:
@@ -57,6 +58,15 @@ class Scheduler:
 
     def executar(self):
         while not all(processo.finalizado for processo in self.processos):
+            if self.tempo >= self.max_uts:
+                pendentes = [processo for processo in self.processos if not processo.finalizado]
+                for processo in pendentes:
+                    processo.estado = Estado.FINALIZADO
+                    processo.tempo_termino = self.tempo
+                    processo.erro = f"limite de {self.max_uts} UTs atingido"
+                    if self.mostrar:
+                        print(f"[{processo.nome}] Finalizado por limite de execucao ({self.max_uts} UTs)")
+                break
             self._admitir()
             self._acordar()
             if self.executando is not None and self.executando.estado != Estado.EXECUTANDO:
@@ -77,8 +87,23 @@ class Scheduler:
                 self.tempo += 1
                 continue
 
-            resultado = self.cpu.executar_uma(processo, self.tempo)
+            try:
+                resultado = self.cpu.executar_uma(processo, self.tempo)
+            except RuntimeError as erro:
+                processo.estado = Estado.FINALIZADO
+                processo.tempo_termino = self.tempo + 1
+                processo.erro = str(erro)
+                self.executando = None
+                if self.mostrar:
+                    print(f"[{processo.nome}] Erro: {erro}")
+                self._registrar(processo)
+                self.tempo += 1
+                continue
             processo.quantum_usado += 1
+            if self.mostrar and resultado.syscall == 1:
+                print(f"[{processo.nome}] Impressão (SYSCALL 1): {resultado.valor}")
+            elif self.mostrar and resultado.syscall == 0:
+                print(f"[{processo.nome}] Finalizado (SYSCALL 0)")
             if resultado.bloqueou or resultado.finalizou:
                 self.executando = None
             elif processo.quantum_usado >= self.QUANTA[processo.fila]:
