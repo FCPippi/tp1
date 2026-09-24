@@ -1,0 +1,14 @@
+[
+  {
+    "nome": "P1",
+    "arrivalTime": 0,
+    "prioridade": 3,
+    "arquivo": "programs/teste1.asm"
+  },
+  {
+    "nome": "P2",
+    "arrivalTime": 1,
+    "prioridade": 5,
+    "arquivo": "programs/teste2.asm"
+  }
+]
